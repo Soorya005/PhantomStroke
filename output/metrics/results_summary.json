@@ -1,16 +1,16 @@
 {
   "models": {
     "random_forest": {
-      "test_accuracy": 0.625,
+      "test_accuracy": 0.5555555555555556,
       "train_accuracy": 1.0,
-      "cv_mean": 0.7,
-      "cv_std": 0.11456439237389598
+      "cv_mean": 0.5222222222222223,
+      "cv_std": 0.05665577237325319
     },
     "svm": {
-      "test_accuracy": 0.8125,
+      "test_accuracy": 0.5,
       "train_accuracy": 1.0,
-      "cv_mean": 0.75,
-      "cv_std": 0.10458250331675945
+      "cv_mean": 0.49444444444444446,
+      "cv_std": 0.06894263136661588
     },
     "cnn": {
       "test_accuracy": 0,
@@ -25,6 +25,6 @@
       "cv_std": 0
     }
   },
-  "best_model": "svm",
-  "best_accuracy": 0.8125
+  "best_model": "random_forest",
+  "best_accuracy": 0.5555555555555556
 }
