@@ -1,0 +1,30 @@
+{
+  "models": {
+    "random_forest": {
+      "test_accuracy": 0.625,
+      "train_accuracy": 1.0,
+      "cv_mean": 0.7,
+      "cv_std": 0.11456439237389598
+    },
+    "svm": {
+      "test_accuracy": 0.8125,
+      "train_accuracy": 1.0,
+      "cv_mean": 0.75,
+      "cv_std": 0.10458250331675945
+    },
+    "cnn": {
+      "test_accuracy": 0,
+      "train_accuracy": 0,
+      "cv_mean": 0,
+      "cv_std": 0
+    },
+    "ensemble": {
+      "test_accuracy": 0,
+      "train_accuracy": 0,
+      "cv_mean": 0,
+      "cv_std": 0
+    }
+  },
+  "best_model": "svm",
+  "best_accuracy": 0.8125
+}
