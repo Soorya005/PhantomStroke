@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhantomStroke - Gyroscope Data Reader</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .data-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .axis-data {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .axis-label {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .axis-value {
+            font-size: 24px;
+            font-family: 'Courier New', monospace;
+            color: #e74c3c;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            white-space: nowrap;
+        }
+        
+        .timestamp {
+            color: #3498db;
+        }
+        
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .setting-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            background: #3498db;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌀 PhantomStroke - Gyroscope Data Reader</h1>
+        
+        <div id="status" class="status">
+            Initializing...
+        </div>
+        
+        <div class="info-panel">
+            <strong>API Support:</strong> <span id="api-support">Checking...</span><br>
+            <strong>Sampling Rate:</strong> <span id="sampling-rate">100 Hz</span><br>
+            <strong>Data Points Collected:</strong> <span id="data-count">0</span>
+        </div>
+        
+        <div class="settings">
+            <div class="setting-group">
+                <label for="frequency">Sampling Frequency (Hz):</label>
+                <input type="number" id="frequency" value="100" min="1" max="1000">
+            </div>
+            <div class="setting-group">
+                <label for="buffer-size">Buffer Size:</label>
+                <input type="number" id="buffer-size" value="1000" min="10" max="10000">
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">▶️ Start Reading</button>
+            <button id="stop-btn" disabled>⏹️ Stop Reading</button>
+            <button id="clear-btn">🗑️ Clear Data</button>
+            <button id="save-btn">💾 Save to Local Storage</button>
+            <button id="export-btn">📁 Export Data</button>
+        </div>
+        
+        <div class="data-display">
+            <div class="axis-data">
+                <div class="axis-label">X-Axis (rad/s)</div>
+                <div class="axis-value" id="x-value">0.000</div>
+            </div>
+            <div class="axis-data">
+                <div class="axis-label">Y-Axis (rad/s)</div>
+                <div class="axis-value" id="y-value">0.000</div>
+            </div>
+            <div class="axis-data">
+                <div class="axis-label">Z-Axis (rad/s)</div>
+                <div class="axis-value" id="z-value">0.000</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div>Samples/sec</div>
+                <div id="actual-rate">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Running Time</div>
+                <div id="running-time">0s</div>
+            </div>
+            <div class="stat-item">
+                <div>Data Source</div>
+                <div id="data-source">N/A</div>
+            </div>
+        </div>
+        
+        <h3>📊 Real-time Log</h3>
+        <div class="log-container" id="log-container">
+            <div class="log-entry">
+                <span class="timestamp">[System]</span> Gyroscope reader initialized
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class GyroscopeReader {
+            constructor() {
+                this.isReading = false;
+                this.gyroscope = null;
+                this.dataBuffer = [];
+                this.startTime = null;
+                this.sampleCount = 0;
+                this.lastSampleTime = 0;
+                this.actualSampleRate = 0;
+                
+                // UI elements
+                this.statusEl = document.getElementById('status');
+                this.startBtn = document.getElementById('start-btn');
+                this.stopBtn = document.getElementById('stop-btn');
+                this.clearBtn = document.getElementById('clear-btn');
+                this.saveBtn = document.getElementById('save-btn');
+                this.exportBtn = document.getElementById('export-btn');
+                this.frequencyInput = document.getElementById('frequency');
+                this.bufferSizeInput = document.getElementById('buffer-size');
+                
+                // Data display elements
+                this.xValueEl = document.getElementById('x-value');
+                this.yValueEl = document.getElementById('y-value');
+                this.zValueEl = document.getElementById('z-value');
+                this.dataCountEl = document.getElementById('data-count');
+                this.actualRateEl = document.getElementById('actual-rate');
+                this.runningTimeEl = document.getElementById('running-time');
+                this.dataSourceEl = document.getElementById('data-source');
+                this.logContainer = document.getElementById('log-container');
+                this.apiSupportEl = document.getElementById('api-support');
+                
+                this.init();
+            }
+            
+            async init() {
+                this.log('Initializing gyroscope reader...');
+                
+                // Check API support
+                await this.checkAPISupport();
+                
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                this.log('Initialization complete');
+            }
+            
+            async checkAPISupport() {
+                if ('Gyroscope' in window) {
+                    this.log('✅ Generic Sensor API (Gyroscope) supported');
+                    this.apiSupportEl.textContent = 'Generic Sensor API (High Precision)';
+                    this.dataSourceEl.textContent = 'Generic Sensor';
+                    this.updateStatus('Generic Sensor API available - High precision mode', 'success');
+                    return true;
+                } else if ('DeviceOrientationEvent' in window) {
+                    this.log('⚠️ Falling back to DeviceOrientationEvent (lower precision)');
+                    this.apiSupportEl.textContent = 'DeviceOrientationEvent (Low Precision)';
+                    this.dataSourceEl.textContent = 'DeviceOrientation';
+                    this.updateStatus('Using DeviceOrientationEvent fallback - Lower precision mode', 'warning');
+                    return true;
+                } else {
+                    this.log('❌ No gyroscope API support detected');
+                    this.apiSupportEl.textContent = 'Not Supported';
+                    this.dataSourceEl.textContent = 'None';
+                    this.updateStatus('No gyroscope API support detected in this browser', 'error');
+                    return false;
+                }
+            }
+            
+            setupEventListeners() {
+                this.startBtn.addEventListener('click', () => this.startReading());
+                this.stopBtn.addEventListener('click', () => this.stopReading());
+                this.clearBtn.addEventListener('click', () => this.clearData());
+                this.saveBtn.addEventListener('click', () => this.saveToLocalStorage());
+                this.exportBtn.addEventListener('click', () => this.exportData());
+            }
+            
+            async startReading() {
+                if (this.isReading) return;
+                
+                this.log('🚀 Starting gyroscope reading...');
+                
+                try {
+                    if ('Gyroscope' in window) {
+                        await this.startGenericSensorAPI();
+                    } else if ('DeviceOrientationEvent' in window) {
+                        await this.startDeviceOrientationAPI();
+                    } else {
+                        throw new Error('No gyroscope API available');
+                    }
+                    
+                    this.isReading = true;
+                    this.startTime = Date.now();
+                    this.sampleCount = 0;
+                    
+                    this.startBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+                    
+                    this.updateStatus('Reading gyroscope data...', 'success');
+                    this.startTimer();
+                    
+                } catch (error) {
+                    this.log(`❌ Error starting gyroscope: ${error.message}`);
+                    this.updateStatus(`Error: ${error.message}`, 'error');
+                }
+            }
+            
+            async startGenericSensorAPI() {
+                this.log('Initializing Generic Sensor API...');
+                
+                const frequency = parseInt(this.frequencyInput.value) || 100;
+                
+                // Request permissions
+                const result = await navigator.permissions.query({ name: 'gyroscope' });
+                if (result.state === 'denied') {
+                    throw new Error('Gyroscope permission denied');
+                }
+                
+                this.gyroscope = new Gyroscope({ frequency });
+                
+                this.gyroscope.addEventListener('reading', () => {
+                    this.handleGyroscopeReading(
+                        this.gyroscope.x || 0,
+                        this.gyroscope.y || 0,
+                        this.gyroscope.z || 0
+                    );
+                });
+                
+                this.gyroscope.addEventListener('error', (event) => {
+                    this.log(`❌ Gyroscope error: ${event.error.message}`);
+                });
+                
+                this.gyroscope.start();
+                this.log(`✅ Generic Sensor API started at ${frequency} Hz`);
+            }
+            
+            async startDeviceOrientationAPI() {
+                this.log('Initializing DeviceOrientationEvent API...');
+                
+                // Request permission for iOS 13+
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission !== 'granted') {
+                        throw new Error('Device orientation permission denied');
+                    }
+                }
+                
+                let lastAlpha = 0, lastBeta = 0, lastGamma = 0;
+                let lastTime = Date.now();
+                
+                this.deviceOrientationHandler = (event) => {
+                    const currentTime = Date.now();
+                    const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+                    
+                    if (deltaTime > 0) {
+                        // Calculate angular velocity from orientation changes
+                        const x = (event.beta - lastBeta) / deltaTime * Math.PI / 180; // Convert to rad/s
+                        const y = (event.gamma - lastGamma) / deltaTime * Math.PI / 180;
+                        const z = (event.alpha - lastAlpha) / deltaTime * Math.PI / 180;
+                        
+                        this.handleGyroscopeReading(x, y, z);
+                        
+                        lastAlpha = event.alpha || 0;
+                        lastBeta = event.beta || 0;
+                        lastGamma = event.gamma || 0;
+                        lastTime = currentTime;
+                    }
+                };
+                
+                window.addEventListener('deviceorientation', this.deviceOrientationHandler, true);
+                this.log('✅ DeviceOrientationEvent API started');
+            }
+            
+            handleGyroscopeReading(x, y, z) {
+                const timestamp = Date.now();
+                const sample = { timestamp, x, y, z };
+                
+                // Add to buffer
+                this.dataBuffer.push(sample);
+                
+                // Maintain buffer size
+                const maxBufferSize = parseInt(this.bufferSizeInput.value) || 1000;
+                if (this.dataBuffer.length > maxBufferSize) {
+                    this.dataBuffer.shift();
+                }
+                
+                // Update display
+                this.updateDisplay(x, y, z);
+                
+                // Update sample count and rate
+                this.sampleCount++;
+                this.updateSampleRate(timestamp);
+                
+                // Log every 100th sample to avoid spam
+                if (this.sampleCount % 100 === 0) {
+                    this.log(`Sample ${this.sampleCount}: X=${x.toFixed(3)}, Y=${y.toFixed(3)}, Z=${z.toFixed(3)}`);
+                }
+            }
+            
+            updateDisplay(x, y, z) {
+                this.xValueEl.textContent = x.toFixed(3);
+                this.yValueEl.textContent = y.toFixed(3);
+                this.zValueEl.textContent = z.toFixed(3);
+                this.dataCountEl.textContent = this.dataBuffer.length.toString();
+            }
+            
+            updateSampleRate(currentTime) {
+                if (this.lastSampleTime > 0) {
+                    const deltaTime = currentTime - this.lastSampleTime;
+                    this.actualSampleRate = Math.round(1000 / deltaTime);
+                    this.actualRateEl.textContent = this.actualSampleRate.toString();
+                }
+                this.lastSampleTime = currentTime;
+            }
+            
+            startTimer() {
+                this.timerInterval = setInterval(() => {
+                    if (this.startTime) {
+                        const elapsed = Math.round((Date.now() - this.startTime) / 1000);
+                        this.runningTimeEl.textContent = `${elapsed}s`;
+                    }
+                }, 1000);
+            }
+            
+            stopReading() {
+                if (!this.isReading) return;
+                
+                this.log('⏹️ Stopping gyroscope reading...');
+                
+                if (this.gyroscope) {
+                    this.gyroscope.stop();
+                    this.gyroscope = null;
+                }
+                
+                if (this.deviceOrientationHandler) {
+                    window.removeEventListener('deviceorientation', this.deviceOrientationHandler, true);
+                    this.deviceOrientationHandler = null;
+                }
+                
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+                
+                this.isReading = false;
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+                
+                this.updateStatus('Gyroscope reading stopped', 'warning');
+                this.log(`✅ Stopped. Collected ${this.sampleCount} samples in total.`);
+            }
+            
+            clearData() {
+                this.dataBuffer = [];
+                this.sampleCount = 0;
+                this.updateDisplay(0, 0, 0);
+                this.dataCountEl.textContent = '0';
+                this.actualRateEl.textContent = '0';
+                this.runningTimeEl.textContent = '0s';
+                this.logContainer.innerHTML = '<div class="log-entry"><span class="timestamp">[System]</span> Data cleared</div>';
+                this.log('🗑️ Data buffer cleared');
+            }
+            
+            saveToLocalStorage() {
+                if (this.dataBuffer.length === 0) {
+                    this.log('⚠️ No data to save');
+                    return;
+                }
+                
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    sampleCount: this.dataBuffer.length,
+                    frequency: parseInt(this.frequencyInput.value),
+                    source: this.dataSourceEl.textContent,
+                    data: this.dataBuffer
+                };
+                
+                localStorage.setItem('phantomstroke_gyro_data', JSON.stringify(data));
+                this.log(`💾 Saved ${this.dataBuffer.length} samples to local storage`);
+            }
+            
+            exportData() {
+                if (this.dataBuffer.length === 0) {
+                    this.log('⚠️ No data to export');
+                    return;
+                }
+                
+                const data = {
+                    metadata: {
+                        timestamp: new Date().toISOString(),
+                        sampleCount: this.dataBuffer.length,
+                        frequency: parseInt(this.frequencyInput.value),
+                        source: this.dataSourceEl.textContent,
+                        userAgent: navigator.userAgent
+                    },
+                    data: this.dataBuffer
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `phantomstroke_gyro_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.log(`📁 Exported ${this.dataBuffer.length} samples to file`);
+            }
+            
+            updateStatus(message, type) {
+                this.statusEl.textContent = message;
+                this.statusEl.className = `status ${type}`;
+            }
+            
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+                this.logContainer.appendChild(logEntry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+                
+                // Keep only last 100 log entries
+                while (this.logContainer.children.length > 100) {
+                    this.logContainer.removeChild(this.logContainer.firstChild);
+                }
+            }
+        }
+        
+        // Initialize the gyroscope reader when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.gyroscopeReader = new GyroscopeReader();
+        });
+    </script>
+</body>
+</html>
